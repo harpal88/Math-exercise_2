@@ -89,4 +89,18 @@ format_func=lambda x: f"{x}: {dict(options)[x]}"
         
         # Show explanation
         st.subheader("Explanation:")
-        st.write(st.session_state.response_dict["Explanation"])
+        explanation = st.session_state.response_dict["Explanation"]
+        
+        # First fix the completely broken LaTeX parts
+        explanation = explanation.replace('frac{80{200', '(80/200)')
+        explanation = explanation.replace(' imes', '×')
+        explanation = explanation.replace(' ext{Percentage = ( ', 'Percentage = (')
+        explanation = explanation.replace(' ight)', ')')
+        explanation = explanation.replace('frac{Obtained Marks{Total Marks', '(Obtained Marks/Total Marks)')
+        
+        # Remove all remaining LaTeX artifacts
+        explanation = re.sub(r'\\[a-zA-Z]+\{?', '', explanation)
+        explanation = explanation.replace('{', '').replace('}', '')
+        
+        # Display the cleaned explanation
+        st.markdown(explanation)
