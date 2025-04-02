@@ -1,3 +1,4 @@
+import re
 from langchain.chat_models import init_chat_model
 import streamlit as st
 import os
@@ -42,8 +43,16 @@ if st.button(f"Generate {Math_topic} Math Problem"):
     
     try:
         st.session_state.llm_response = llm.invoke(messages)
-        st.session_state.response_dict = json.loads(st.session_state.llm_response.content)
-        
+# Clean response: Remove problematic control characters and ensure proper escaping
+        raw_response = st.session_state.llm_response.content
+        cleaned_response = re.sub(r'[\x00-\x1F]+', ' ', raw_response)  # Remove invalid control characters
+        cleaned_response = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', cleaned_response)  # Properly escape backslashes
+
+        try:
+            st.session_state.response_dict = json.loads(cleaned_response)
+        except json.JSONDecodeError as e:
+            st.error(f"Error parsing JSON: {str(e)}")
+            st.stop()        
         # Display the Question
         st.subheader("Question:")
         st.write(st.session_state.response_dict["Question"])
@@ -64,8 +73,8 @@ if st.session_state.response_dict:
     choice_key = st.radio(
         "Select an option:",
         options=[opt[0] for opt in options],
-        format_func=lambda x: f"{x}: {options[['A','B','C','D'].index(x)][1]}"
-    )
+format_func=lambda x: f"{x}: {dict(options)[x]}"
+        )
     
     if st.button("Submit Answer"):
         selected_answer = st.session_state.response_dict["Choices"][choice_key]
